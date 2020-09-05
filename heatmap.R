@@ -1,6 +1,7 @@
 library(ggplot2)
 library(ggtree)
 library(aplot)
+library(tidyr)
 p <- read.table("heatmap.txt",header = T,sep="\t",row.names = 1) %>%
     scale() %>% t() %>% data.frame()
 phr <- hclust(dist(p)) %>% ggtree(layout="rectangular", branch.length="none") #根据数据绘制行聚类树
