@@ -1,0 +1,61 @@
+library(ggplot2)
+library(ggtree)
+library(aplot)
+library(tidyr)
+p <- read.table("SOD.txt",sep="\t",header = T,row.names = 1,check.names = F)
+p <- t(p)
+p <- scale(p)
+p[is.na(p)]<-0  
+p <- t(p) %>% data.frame()
+#绘制行聚类树
+phr <- hclust(dist(p)) %>% ggtree(layout="rectangular", branch.length="none")
+#绘制列聚类树
+phc <- hclust(dist(t(p))) %>% ggtree() + layout_dendrogram()
+p$mtxars <- rownames(p)
+#宽表转长表
+p1 <- gather(p, 1:12, key="condition", value='expr')
+#绘制热图
+pp <- ggplot(p1,aes(condition,mtxars,fill=expr)) + geom_tile()+
+  theme_minimal()+
+  scale_fill_viridis_c() +
+  scale_y_discrete(position="right")+
+  xlab(NULL) + ylab(NULL)+
+  theme(axis.text.x = element_text(angle = 90,hjust=0.8,vjust=0.6))+
+  theme(axis.text.x=element_text(family = "Times",
+                                 face = "plain",colour = "black",size=10))+
+  theme(axis.text.y=element_text(family = "Times",
+                                 face = "plain",colour = "black",size=10))+
+  theme(legend.text=element_text(face="plain",family = "Times",
+                                 colour = "black",size = 10))+
+  labs(fill = "expr")
+#利用aplot包将聚类树与热图拼接
+g1 <- ggplot(dplyr::filter(p1,mtxars!="SmMSD1",mtxars!='SmMSD3'), 
+             aes(mtxars, expr, fill=mtxars)) + 
+  geom_boxplot() + coord_flip() +
+  scale_fill_brewer(palette = 'Set1') +
+  theme_minimal() + 
+  theme(axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank()) +
+  xlab(NULL) + ylab(NULL) +
+  labs(fill = "gene")+
+  theme(axis.text.x=element_text(family = "Times",
+                                 face = "plain",colour = "black",size=10))+
+  theme(legend.text=element_text(face="plain",family = "Times",
+                                 colour = "black",size = 10))
+ko <- read.table("sod_map.txt",header = T,sep="\t")
+map <- ggplot(ko, aes(KO, gene)) + 
+  geom_point(size=5, color='steelblue') +
+  theme_minimal() +
+  theme(axis.text.x=element_text(angle=90, hjust=0),
+        axis.text.y = element_blank(), 
+        axis.ticks.y = element_blank()) +
+  xlab(NULL) + ylab(NULL) +
+  theme(axis.text.x=element_text(family = "Times",
+                                 face = "plain",colour = "black",size=10))
+#aplot拼图
+pp %>% insert_left(phr, width=.1) %>%
+  insert_top(phc, height=.1) %>% 
+  insert_right(map, width=.2)  %>% 
+  insert_right(g1, width=.3)
